@@ -1,7 +1,6 @@
----
 services:
   umami:
-    image: ghcr.io/umami-software/umami:latest
+    build: ./docker/umami
     ports:
       - "3000:3000"
     environment:
