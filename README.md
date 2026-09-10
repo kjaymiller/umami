@@ -96,6 +96,35 @@ docker compose up -d
 
 ---
 
+## ☁️ Running on Aiven Runtime
+
+This branch (`aiven-runtime`) adapts the Docker image so it can be deployed as an
+[Aiven Runtime](https://aiven.io/docs/products/runtime) application, connected to an
+Aiven for PostgreSQL service. Changes made for this to work:
+
+- **`docker/umami/Dockerfile`** — builds on top of `ghcr.io/umami-software/umami:latest` and adds
+  a custom `ENTRYPOINT` (`fetch-ca.sh`) that runs before the app starts. Because setting a new
+  `ENTRYPOINT` in a derived image resets any `CMD` inherited from the base image, the Dockerfile
+  also re-declares `CMD ["sh", "scripts/start-docker.sh"]` so the original umami startup command
+  still runs — without it the container falls through to a bare `node` REPL and the app never
+  binds to its port.
+- **`docker/umami/fetch-ca.sh`** — fetches the Aiven project's CA certificate at container
+  startup and points `NODE_EXTRA_CA_CERTS` at it, so Node trusts the TLS chain presented by an
+  Aiven-managed Postgres service. (Aiven Postgres certs are rooted in Aiven's own CA, which isn't
+  in Node's default trust store — connecting without this raises `self-signed certificate in
+  certificate chain`.) It only runs when `AIVEN_API_TOKEN` and `AIVEN_PROJECT_NAME` are set;
+  otherwise it skips the fetch and falls through to the image's normal entrypoint, so local/dev
+  use (e.g. `docker compose up`) is unaffected.
+  - `AIVEN_API_TOKEN` — an Aiven API token (secret; do not commit).
+  - `AIVEN_PROJECT_NAME` — the Aiven project the Postgres service lives in. The CA is
+    project-scoped, so this is the only identifier the fetch actually needs.
+  - `AIVEN_SERVICE_NAME` — optional, used only for logging context.
+  - If Aiven Runtime already injects `PROJECT_CA_CERT` for the service (its own base64-encoded
+    project CA cert), that supersedes this fetch — `fetch-ca.sh` is only needed for deployment
+    targets where the platform doesn't provide it for you.
+
+---
+
 ## 🔄 Getting Updates
 
 To get the latest features, simply do a pull, install any new dependencies, and rebuild:
