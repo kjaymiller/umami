@@ -6,3 +6,4 @@ RUN chmod +x /usr/local/bin/fetch-ca.sh
 USER nextjs
 
 ENTRYPOINT ["/usr/local/bin/fetch-ca.sh"]
+CMD ["sh", "scripts/start-docker.sh"]
